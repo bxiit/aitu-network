@@ -1,0 +1,57 @@
+name: CI/CD Pipeline for Aitu Network Backend Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Installation of Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Building of project
+        run: |
+          mvn clean
+          mvn -B package
+
+      - name: Login Docker
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and push Docker
+        run: |
+          docker build --no-cache -t aitu-network:latest .
+          docker tag aitu-network:latest bxiit/aitu-network:latest
+          docker push bxiit/aitu-network:latest
+
+      - name: connect to server and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull bxiit/aitu-network:latest
+            NEW_IMAGE_ID=$(docker images "${{ secrets.DOCKER_USERNAME }}/aitu-network" --format "{{.ID}}" | head -n 1)
+            
+            docker stop aitu-network || true
+            docker rm aitu-network || true
+            
+            docker images "${{ secrets.DOCKER_USERNAME }}/aitu-network" --format "{{.ID}}" | grep -v "$NEW_IMAGE_ID" | xargs -r docker rmi -f || true
+            
+            docker run -d --name aitu-network --network aitu-net \
+            -e SPRING_PROFILES_ACTIVE=default \
+            -e SECURE_TALK_DOMAIN=https://aitunet.kz/api \
+            -e MAIL_PASS="${{ secrets.MAIL_PASSWORD }}" \
+            -p 8080:8080 bxiit/aitu-network:latest
