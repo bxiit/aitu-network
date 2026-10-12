@@ -4,9 +4,9 @@ import aitu.network.aitunetwork.config.security.CustomAuthenticationEntryPoint;
 import aitu.network.aitunetwork.config.security.CustomJwtFilter;
 import aitu.network.aitunetwork.config.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -24,7 +24,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -35,7 +34,8 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final CustomJwtFilter jwtFilter;
-    private final Environment environment;
+    @Value("${secure-talk.cors.allowed-origins}")
+    private List<String> allowedOrigins;
     private final static String[] ALLOW_ALL_MATCHER = new String[]{
             "/swagger-ui/**",
             "/swagger-resources/*",
@@ -88,7 +88,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://aitunet.kz", "https://www.aitunet.kz", "http://localhost:3000"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -107,8 +107,5 @@ public class SecurityConfig {
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(authProvider);
-    }
-    public boolean isLocal(){
-        return Arrays.asList(environment.getActiveProfiles()).contains("local");
     }
 }
