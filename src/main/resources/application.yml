@@ -8,7 +8,7 @@ secure-talk:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://212.116.234.92:3000,http://localhost:3000}
   file-download-path: ${secure-talk.domain}/v1/file/
-  mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:true}
+  mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:false}
   chat:
     user-destination: ${USER_WS_DESTINATION:/queue/messages}
 spring:
