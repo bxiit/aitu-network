@@ -6,7 +6,7 @@ server:
 secure-talk:
   domain: ${SECURE_TALK_DOMAIN:http://212.116.234.92:8080/api}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://212.116.234.92:8080,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://212.116.234.92:3000,http://localhost:3000}
   file-download-path: ${secure-talk.domain}/v1/file/
   mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:true}
   chat:
