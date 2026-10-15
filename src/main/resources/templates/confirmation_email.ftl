@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        .btn {
-            background-color: #28a745;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
+        .code {
+            font-family: monospace;
+            font-size: 16px;
+            background-color: #eee;
+            padding: 12px;
             border-radius: 5px;
-            font-weight: bold;
+            word-break: break-all;
         }
 
         .container {
@@ -26,11 +26,9 @@
 <body>
 <div class="container">
     <h2>Hello, ${name}!</h2>
-    <p>Thank you for registering. Please confirm your email address by clicking the button below:</p>
-    <p>
-        <a class="btn" href="${confirmationUrl}">Confirm Email</a>
-    </p>
-    <p>This link will expire in 24 hours.</p>
+    <p>Thank you for registering. Your email confirmation code is:</p>
+    <p class="code">${code}</p>
+    <p>This code will expire in 24 hours.</p>
     <br>
     <p>Best regards,<br>The Team</p>
 </div>

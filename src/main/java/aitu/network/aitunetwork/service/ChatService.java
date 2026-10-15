@@ -1,12 +1,9 @@
 package aitu.network.aitunetwork.service;
 
+import aitu.network.aitunetwork.common.exception.ForbiddenException;
 import aitu.network.aitunetwork.model.dto.UserShortDTO;
 import aitu.network.aitunetwork.model.dto.WSMessageType;
-import aitu.network.aitunetwork.model.dto.chat.ChatRoomDTO;
-import aitu.network.aitunetwork.model.dto.chat.ChatRoomsWithMessages;
-import aitu.network.aitunetwork.model.dto.chat.MessageMark;
-import aitu.network.aitunetwork.model.dto.chat.NewChatRoomDTO;
-import aitu.network.aitunetwork.model.dto.chat.WSMessage;
+import aitu.network.aitunetwork.model.dto.chat.*;
 import aitu.network.aitunetwork.model.entity.User;
 import aitu.network.aitunetwork.model.entity.chat.ChatMessage;
 import aitu.network.aitunetwork.model.entity.chat.ChatRoom;
@@ -16,11 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.LookupOperation;
-import org.springframework.data.mongodb.core.aggregation.MatchOperation;
-import org.springframework.data.mongodb.core.aggregation.ReplaceRootOperation;
+import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -128,16 +123,20 @@ public class ChatService {
         chatRoomService.actionParticipantToChatRoom(chatRoomId, participantId, ChatRoom::removeParticipant);
     }
 
-    public ChatMessage saveFileMessage(ChatMessage chatMessage, MultipartFile file) {
-        if (!chatMessage.getType().isFileMessageType) {
-            throw new IllegalArgumentException("Message type is non file type");
-        }
-        String fileId = fileService.uploadFile(file);
-        String link = fileService.getLinkForResource(fileId);
+    public String uploadChatFile(String chatId, MultipartFile file, User uploader) {
+        requireParticipant(chatRoomService.findChatRoom(chatId), uploader);
+        return fileService.uploadChatFile(file, chatId, uploader.getId());
+    }
 
-        // TODO: Зашифровать ссылку на файл
-        // chatMessage.setContent(link); // Deprecated
-        return chatMessageService.save(chatMessage);
+    public GridFsResource getChatFile(String chatId, String fileId, User user) {
+        requireParticipant(chatRoomService.findChatRoom(chatId), user);
+        return fileService.getChatFile(chatId, fileId);
+    }
+
+    private static void requireParticipant(ChatRoom chatRoom, User user) {
+        if (!chatRoom.getParticipants().contains(user)) {
+            throw new ForbiddenException("errors.403.chats.participant");
+        }
     }
 
     public void processMessageStatus(MessageMark messageMark) {
