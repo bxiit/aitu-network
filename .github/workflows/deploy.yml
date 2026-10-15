@@ -79,18 +79,14 @@ jobs:
           MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
           TOKEN_KEY: ${{ secrets.TOKEN_KEY }}
           MAIL_PASS: ${{ secrets.MAIL_PASSWORD }}
-          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
-          MAIL_CONFIRMATION_ENABLED: ${{ vars.MAIL_CONFIRMATION_ENABLED || 'false' }}
         run: |
           umask 077
           cat > deploy.env <<EOF
           IMAGE_TAG='${GITHUB_REF_NAME}'
           HOST_PORT='${HOST_PORT}'
-          PUBLIC_URL='${PUBLIC_URL}'
           MONGO_PASSWORD='${MONGO_PASSWORD}'
           TOKEN_KEY='${TOKEN_KEY}'
           MAIL_PASS='${MAIL_PASS}'
-          MAIL_CONFIRMATION_ENABLED='${MAIL_CONFIRMATION_ENABLED}'
           EOF
 
       - name: Deploy

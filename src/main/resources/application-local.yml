@@ -10,5 +10,4 @@ logging:
     org.springframework.data.mongodb: debug
 
 secure-talk:
-  frontend-url: ${FRONTEND_URL:http://localhost:3000}
   mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:false}

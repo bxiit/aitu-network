@@ -51,11 +51,11 @@ public class AuthService {
     public CompletableFuture<User> registerUser(RegisterRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                User user = mapUserDTOToUser(request);
+                User user = userRepository.save(mapUserDTOToUser(request));
                 if (isEmailConfirmationEnabled) {
                     sendVerificationMessage(user);
                 }
-                return userRepository.save(user);
+                return user;
             } catch (DuplicateKeyException e) {
                 throw new ConflictException("errors.409.users.email");
             }

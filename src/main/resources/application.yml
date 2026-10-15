@@ -2,13 +2,15 @@ server:
   port: 8080
   error:
     include-message: always
-#  forward-headers-strategy: native
+  # Requests arrive through a proxy (the Next.js frontend, Caddy). Use its X-Forwarded-Host/Proto as the
+  # request's own host, so browser calls through the proxy count as same-origin and need no CORS entry.
+  forward-headers-strategy: framework
 secure-talk:
-  domain: ${SECURE_TALK_DOMAIN:https://212-116-234-92.sslip.io/api}
-  frontend-url: ${FRONTEND_URL:https://212-116-234-92.sslip.io}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://212-116-234-92.sslip.io,http://212.116.234.92:3000,http://localhost:3000}
-  file-download-path: ${secure-talk.domain}/v1/file/
+    # only for browsers calling the backend directly from another origin
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  # relative, so links work on whatever address the site is served from
+  file-download-path: /api/v1/file/
   mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:false}
   chat:
     user-destination: ${USER_WS_DESTINATION:/queue/messages}

@@ -26,10 +26,6 @@ services:
       # Overrides spring.data.mongodb.uri and token.key from application.yml
       SPRING_DATA_MONGODB_URI: mongodb://aituuser:${MONGO_PASSWORD}@mongo-db:27017/aitunetwork?authSource=admin
       TOKEN_KEY: ${TOKEN_KEY:?TOKEN_KEY is not set}
-      SECURE_TALK_DOMAIN: ${PUBLIC_URL:?PUBLIC_URL is not set}/api
-      FRONTEND_URL: ${PUBLIC_URL}
-      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL}
-      MAIL_CONFIRMATION_ENABLED: ${MAIL_CONFIRMATION_ENABLED:-false}
       MAIL_PASS: ${MAIL_PASS:-}
     ports:
       - "${HOST_PORT:?HOST_PORT is not set}:8080"

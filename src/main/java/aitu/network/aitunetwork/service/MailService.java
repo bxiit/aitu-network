@@ -7,6 +7,7 @@ import freemarker.template.TemplateException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -22,16 +23,18 @@ import java.util.Map;
 public class MailService {
     private final JavaMailSender mailSender;
     private final Configuration freemarkerConfig;
+    // Gmail SMTP only sends from the authenticated account
+    @Value("${spring.mail.username}")
+    private String from;
 
     public void sendConfirmationMessage(User user) {
-        String confirmationUrl = "https://aitunet.kz/api/v1/auth/confirm?token=" + user.getVerificationTokenHolder().token();
-
         MimeMessage message = mailSender.createMimeMessage();
 
         try {
             Map<String, Object> model = new HashMap<>();
             model.put("name", user.getUsername());
-            model.put("confirmationUrl", confirmationUrl);
+            // a code to enter on the site rather than a link: the backend doesn't know the site's public address
+            model.put("code", user.getVerificationTokenHolder().token());
 
             Template template = freemarkerConfig.getTemplate("confirmation_email.ftl");
             StringWriter writer = new StringWriter();
@@ -39,7 +42,7 @@ public class MailService {
             String html = writer.toString();
 
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
-            helper.setFrom("noreply@aitu.kz");
+            helper.setFrom(from);
             helper.setTo(user.getEmail());
             helper.setSubject("Confirm your email");
             helper.setText(html, true);
@@ -61,7 +64,7 @@ public class MailService {
             template.process(model, writer);
             String html = writer.toString();
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
-            helper.setFrom("noreply@aitu.kz");
+            helper.setFrom(from);
             helper.setTo(user.getEmail());
             helper.setSubject("Confirm your email");
             helper.setText(html, true);
