@@ -56,4 +56,4 @@ jobs:
             docker run -d --name aitu-network --network aitu-net \
             -e SPRING_PROFILES_ACTIVE=default \
             -e MAIL_PASS="${{ secrets.MAIL_PASSWORD }}" \
-            -p 8080:8080 bxiit/aitu-network:latest
+            -p 127.0.0.1:8080:8080 bxiit/aitu-network:latest
