@@ -1,0 +1,49 @@
+# Production stack for the deploy host. The deploy workflow copies this file to
+# $DEPLOY_PATH/compose.yml and writes $DEPLOY_PATH/.env with the variables used below.
+# (Kept in deploy/ so it doesn't shadow docker-compose.yml, which is for local development.)
+services:
+  mongo-db:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: aituuser
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is not set}
+    volumes:
+      - mongo_data:/data/db
+    # The backend connects over the project network (mongo-db:27017). Port 27018 on the host is for
+    # admin access (IntelliJ, mongosh) through an SSH tunnel; it's bound to 127.0.0.1 because Docker's
+    # published ports bypass the host firewall.
+    ports:
+      - "127.0.0.1:27018:27017"
+
+  backend:
+    image: ghcr.io/bxiit/aitu-network:${IMAGE_TAG:?IMAGE_TAG is not set}
+    restart: unless-stopped
+    depends_on:
+      - mongo-db
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      # Overrides spring.data.mongodb.uri and token.key from application.yml
+      SPRING_DATA_MONGODB_URI: mongodb://aituuser:${MONGO_PASSWORD}@mongo-db:27017/aitunetwork?authSource=admin
+      TOKEN_KEY: ${TOKEN_KEY:?TOKEN_KEY is not set}
+      SECURE_TALK_DOMAIN: ${PUBLIC_URL:?PUBLIC_URL is not set}/api
+      FRONTEND_URL: ${PUBLIC_URL}
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL}
+      MAIL_CONFIRMATION_ENABLED: ${MAIL_CONFIRMATION_ENABLED:-false}
+      MAIL_PASS: ${MAIL_PASS:-}
+    ports:
+      - "${HOST_PORT:?HOST_PORT is not set}:8080"
+    networks:
+      default:
+      aitu-net:
+        # the frontend container proxies /api and /ws to this name
+        aliases:
+          - aitu-backend
+
+volumes:
+  mongo_data:
+
+networks:
+  # shared with the frontend stack; created by the deploy workflow
+  aitu-net:
+    external: true
