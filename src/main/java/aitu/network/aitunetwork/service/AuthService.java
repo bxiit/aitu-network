@@ -10,6 +10,7 @@ import aitu.network.aitunetwork.model.dto.RegisterRequest;
 import aitu.network.aitunetwork.model.dto.TokenHolder;
 import aitu.network.aitunetwork.model.dto.chat.EncryptedPrivateKey;
 import aitu.network.aitunetwork.model.dto.chat.EncryptedPrivateKeyDto;
+import aitu.network.aitunetwork.model.dto.chat.KeyPairSetupRequest;
 import aitu.network.aitunetwork.model.entity.User;
 import aitu.network.aitunetwork.model.enums.AccessType;
 import aitu.network.aitunetwork.model.enums.Role;
@@ -22,6 +23,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -93,6 +95,29 @@ public class AuthService {
                 encryptedKey.getSalt(),
                 encryptedKey.getIv()
         );
+    }
+
+    public void setUpKeys(String userId, KeyPairSetupRequest request) {
+        if (!EncryptionUtils.validatePublicKey(request.publicKey())) {
+            throw new BadRequestException("Invalid public key format");
+        }
+        EncryptedPrivateKeyDto dto = request.encryptedPrivateKeyDto();
+        EncryptedPrivateKey encryptedPrivateKey = EncryptedPrivateKey.builder()
+                .encryptedKey(dto.encryptedKey())
+                .salt(dto.salt())
+                .iv(dto.iv())
+                .build();
+        // Only while the account has no keys, checked atomically: replacing an existing public key would let
+        // whoever holds the session read the account's future messages.
+        Query noKeysYet = new Query(Criteria.where("_id").is(userId)
+                .and(User.Fields.publicKey).is(null)
+                .and(User.Fields.encryptedPrivateKey).is(null));
+        Update setKeys = new Update()
+                .set(User.Fields.publicKey, request.publicKey())
+                .set(User.Fields.encryptedPrivateKey, encryptedPrivateKey);
+        if (mongoTemplate.updateFirst(noKeysYet, setKeys, User.class).getModifiedCount() == 0) {
+            throw new ConflictException("errors.409.users.keys");
+        }
     }
 
     // TODO реализовать функционал для этого. Пока не использовать. Изменение пароля сломает чат

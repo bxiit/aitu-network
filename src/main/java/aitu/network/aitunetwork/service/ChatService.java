@@ -1,5 +1,6 @@
 package aitu.network.aitunetwork.service;
 
+import aitu.network.aitunetwork.common.exception.ConflictException;
 import aitu.network.aitunetwork.common.exception.ForbiddenException;
 import aitu.network.aitunetwork.model.dto.UserShortDTO;
 import aitu.network.aitunetwork.model.dto.WSMessageType;
@@ -65,6 +66,10 @@ public class ChatService {
             throw new RuntimeException("User is not a participant of this chat");
         }
 
+        // accounts created before end-to-end encryption get a key at their next login
+        if (chatRoom.getParticipants().stream().anyMatch(participant -> participant.getPublicKey() == null)) {
+            throw new ConflictException("errors.409.chats.keys");
+        }
         return chatRoom.getParticipants().stream()
                 .collect(Collectors.toMap(
                         User::getId,

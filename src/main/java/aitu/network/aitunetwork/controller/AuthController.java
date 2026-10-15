@@ -7,6 +7,7 @@ import aitu.network.aitunetwork.model.dto.LoginRequest;
 import aitu.network.aitunetwork.model.dto.RegisterRequest;
 import aitu.network.aitunetwork.model.dto.UserDTO;
 import aitu.network.aitunetwork.model.dto.chat.EncryptedPrivateKeyDto;
+import aitu.network.aitunetwork.model.dto.chat.KeyPairSetupRequest;
 import aitu.network.aitunetwork.model.entity.User;
 import aitu.network.aitunetwork.model.mapper.UserMapper;
 import aitu.network.aitunetwork.service.AuthService;
@@ -14,6 +15,7 @@ import aitu.network.aitunetwork.util.CookieUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -63,6 +65,13 @@ public class AuthController {
     @GetMapping("/encrypted-private-key")
     ResponseEntity<EncryptedPrivateKeyDto> getEncryptedPrivateKey(@CurrentUser CustomUserDetails userDetails) {
         return ResponseEntity.ok(authService.getEncryptedPrivateKey(userDetails.getUsername()));
+    }
+
+    // Accounts created before end-to-end encryption have no key pair; the client generates one at login
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping("/keys")
+    void setUpKeys(@RequestBody @Valid KeyPairSetupRequest request, @CurrentUser CustomUserDetails userDetails) {
+        authService.setUpKeys(userDetails.user().getId(), request);
     }
 
     @GetMapping("/me")
