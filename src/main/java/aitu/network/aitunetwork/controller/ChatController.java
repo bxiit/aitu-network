@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +57,8 @@ public class ChatController {
         return chatService.findChatMessages(chatId);
     }
 
-    @GetMapping({"/{userId}", "/"})
+    // without the trailing slash too: the Next.js proxy redirects "/chats/" to "/chats"
+    @GetMapping({"/{userId}", "/", ""})
     List<ChatRoomsWithMessages> findChatMessages(
             @PathVariable(required = false) String userId,
             @CurrentUser CustomUserDetails userDetails
@@ -66,7 +66,7 @@ public class ChatController {
         return chatService.findChats(userDetails.resolveUserId(userId, userFetcher));
     }
 
-    @GetMapping(value = {"/rooms/{userId}", "/rooms/"})
+    @GetMapping(value = {"/rooms/{userId}", "/rooms/", "/rooms"})
     List<ChatRoomDTO> findUserChatRooms(
             @PathVariable(required = false) String userId,
             @CurrentUser CustomUserDetails userDetails
@@ -112,8 +112,8 @@ public class ChatController {
     ) throws IOException {
         GridFsResource resource = chatService.getChatFile(chatId, fileId, userDetails.user());
         return ResponseEntity.ok()
-                // ciphertext, but still keep it out of shared caches
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(1)).cachePrivate())
+                // not even the browser cache: on a shared computer it would hand the file to another account
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .contentLength(resource.contentLength())
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().build().toString())
