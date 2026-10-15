@@ -1,5 +1,6 @@
 package aitu.network.aitunetwork.config.security;
 
+import aitu.network.aitunetwork.util.CookieUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -24,7 +25,6 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 @Slf4j
 public class CustomJwtFilter extends OncePerRequestFilter {
-    public static final String JWT = "jwt";
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
@@ -60,7 +60,7 @@ public class CustomJwtFilter extends OncePerRequestFilter {
         }
 
         return Arrays.stream(req.getCookies())
-                .filter(cookie -> cookie.getName().equals(JWT))
+                .filter(cookie -> cookie.getName().equals(CookieUtils.JWT))
                 .findFirst()
                 .map(Cookie::getValue)
                 .orElse(null);

@@ -3,6 +3,7 @@ package aitu.network.aitunetwork.config;
 import aitu.network.aitunetwork.config.security.CustomAuthenticationEntryPoint;
 import aitu.network.aitunetwork.config.security.CustomJwtFilter;
 import aitu.network.aitunetwork.config.security.CustomUserDetailsService;
+import aitu.network.aitunetwork.util.CookieUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -67,7 +68,7 @@ public class SecurityConfig {
                 .logout(logout -> {
                     logout.logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler());
                     logout.logoutUrl("/api/v1/auth/logout");
-                    logout.deleteCookies("jwt");
+                    logout.deleteCookies(CookieUtils.JWT);
                     logout.addLogoutHandler(
                             new HeaderWriterLogoutHandler(
                                     new ClearSiteDataHeaderWriter(ClearSiteDataHeaderWriter.Directive.COOKIES)
