@@ -1,10 +1,11 @@
 package aitu.network.aitunetwork.model.dto.chat;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.util.Collection;
-
+/** "I've read this chat": marks every message in it as read for the sender of the frame. */
 @Data
 public class MessageMark {
-    private Collection<String> messageIds;
+    @NotBlank(message = "errors.400.chats.id")
+    private String chatId;
 }

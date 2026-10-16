@@ -32,9 +32,10 @@ public class ChatMessageController {
         chatService.processMessage(newChatMessage);
     }
 
-    @MessageMapping("/chat/message/status")
-    public void processMessageStatus(@Payload MessageMark messageMark) {
-        chatService.processMessageStatus(messageMark);
+    // the client sends this while the chat is open and visible
+    @MessageMapping("/chat/read")
+    public void markChatAsRead(@Payload @Valid MessageMark messageMark, Principal principal) {
+        chatService.markChatAsRead(messageMark.getChatId(), currentUser(principal));
     }
 
     private static User currentUser(Principal principal) {

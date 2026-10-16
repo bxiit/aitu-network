@@ -79,6 +79,7 @@ public class ChatService {
 
 
     public Map<String, Object> countNewMessages(String chatId, User user) {
+        requireParticipant(chatRoomService.findChatRoom(chatId), user);
         return Map.of("count", chatMessageService.countNewMessages(chatId, user));
     }
 
@@ -144,7 +145,21 @@ public class ChatService {
         }
     }
 
-    public void processMessageStatus(MessageMark messageMark) {
-        chatMessageService.markChatMessageAsRead(messageMark);
+    public void markChatAsRead(String chatId, User reader) {
+        requireParticipant(chatRoomService.findChatRoom(chatId), reader);
+        List<ChatMessage> read = chatMessageService.markChatAsRead(chatId, reader.getId());
+        if (read.isEmpty()) {
+            return;
+        }
+        // each sender learns which of their messages were read (their ticks turn double)
+        read.stream()
+                .collect(Collectors.groupingBy(ChatMessage::getSenderId,
+                        Collectors.mapping(ChatMessage::getId, Collectors.toList())))
+                .forEach((senderId, messageIds) -> chatMessageService.sendWSMessageToUsers(List.of(senderId),
+                        new WSMessage(WSMessageType.MESSAGES_READ, new MessagesRead(chatId, reader.getId(), messageIds))));
+        // the reader's other tabs and devices clear their unread badge
+        chatMessageService.sendWSMessageToUsers(List.of(reader.getId()),
+                new WSMessage(WSMessageType.MESSAGES_READ,
+                        new MessagesRead(chatId, reader.getId(), read.stream().map(ChatMessage::getId).toList())));
     }
 }
