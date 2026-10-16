@@ -1,7 +1,7 @@
 package aitu.network.aitunetwork.controller.ws;
 
 import aitu.network.aitunetwork.common.exception.UnauthorizedException;
-import aitu.network.aitunetwork.config.security.CustomUserDetails;
+import aitu.network.aitunetwork.config.security.StompPrincipal;
 import aitu.network.aitunetwork.model.dto.chat.MessageMark;
 import aitu.network.aitunetwork.model.entity.User;
 import aitu.network.aitunetwork.model.entity.chat.ChatMessage;
@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -38,9 +37,8 @@ public class ChatMessageController {
         chatService.markChatAsRead(messageMark.getChatId(), currentUser(principal));
     }
 
-    private static User currentUser(Principal principal) {
-        if (principal instanceof UsernamePasswordAuthenticationToken authentication
-                && authentication.getPrincipal() instanceof CustomUserDetails(User user)) {
+    static User currentUser(Principal principal) {
+        if (principal instanceof StompPrincipal(User user)) {
             return user;
         }
         throw new UnauthorizedException("User not authorized");

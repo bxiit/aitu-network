@@ -7,5 +7,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class StatusUpdate {
+    private String userId;
     private ConnectionStatus status;
 }

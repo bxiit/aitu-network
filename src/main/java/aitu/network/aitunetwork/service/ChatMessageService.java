@@ -26,7 +26,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final MongoTemplate mongoTemplate;
     private final SimpMessagingTemplate messagingTemplate;
-    private final Executor executor;
+    private final Executor wsExecutor;
 
     @Value("${secure-talk.chat.user-destination}")
     private String destination;
@@ -77,7 +77,7 @@ public class ChatMessageService {
     }
 
     public void sendWSMessageToUsers(Collection<String> users, WSMessage message) {
-        CompletableFuture.runAsync(() -> users.forEach(user -> sendToUser(user, message)), executor);
+        CompletableFuture.runAsync(() -> users.forEach(user -> sendToUser(user, message)), wsExecutor);
     }
 
     private void sendToUser(String userId, WSMessage WSMessage) {

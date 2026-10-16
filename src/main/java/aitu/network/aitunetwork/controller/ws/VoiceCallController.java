@@ -8,6 +8,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.security.Principal;
+
 @Controller
 @RequiredArgsConstructor
 public class VoiceCallController {
@@ -16,8 +18,11 @@ public class VoiceCallController {
     @MessageMapping("/signaling/{receiverId}")
     public void handleSignal(
             @DestinationVariable("receiverId") String receiverId,
-            @Payload SignalMessage signalMessage
+            @Payload SignalMessage signalMessage,
+            Principal principal
     ) {
+        // the sender is the authenticated session, never what the client puts in the payload
+        signalMessage.setSenderId(ChatMessageController.currentUser(principal).getId());
         messagingTemplate.convertAndSendToUser(
                 receiverId,
                 "/queue/signaling",

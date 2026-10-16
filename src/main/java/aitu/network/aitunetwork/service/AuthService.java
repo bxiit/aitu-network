@@ -43,7 +43,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final CustomUserDetailsService customUserDetailsService;
-    private final Executor executor;
+    private final Executor appExecutor;
     private final MailService mailService;
     private final MongoTemplate mongoTemplate;
 
@@ -61,7 +61,7 @@ public class AuthService {
             } catch (DuplicateKeyException e) {
                 throw new ConflictException("errors.409.users.email");
             }
-        }, executor).exceptionally(e -> {
+        }, appExecutor).exceptionally(e -> {
             throw new RuntimeException("Error while register of user: " + e.getMessage(), e);
         });
     }
@@ -167,7 +167,7 @@ public class AuthService {
                 LocalDateTime.now().plusHours(24));
         user.setRecoverTokenHolder(recoverTokenHolder);
         userRepository.save(user);
-        CompletableFuture.runAsync(() -> mailService.sendForgotPasswordMessage(user), executor);
+        CompletableFuture.runAsync(() -> mailService.sendForgotPasswordMessage(user), appExecutor);
     }
 
     public void recoverPassword(String token, String password) {
@@ -233,6 +233,6 @@ public class AuthService {
     private void sendVerificationMessage(User user) {
         CompletableFuture.runAsync(
                 () -> mailService.sendConfirmationMessage(user),
-                executor);
+                appExecutor);
     }
 }

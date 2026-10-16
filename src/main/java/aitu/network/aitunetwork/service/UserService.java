@@ -36,9 +36,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserService {
 
-    private static final Function<User, String> destinationFunction
-            = (user) -> "/user/" + user.getId() + "/queue/status";
-
     private final UserRepository userRepository;
     private final FileService fileService;
     private final ChatRoomService chatRoomService;
@@ -124,12 +121,12 @@ public class UserService {
 
     public void connectUser(User user) {
         updateUserStatus(user, true, UserStatusDetails.Fields.connectedOn);
-        messagingTemplate.convertAndSend(destinationFunction.apply(user), new StatusUpdate(ConnectionStatus.ONLINE));
+        messagingTemplate.convertAndSend("/topic/presence", new StatusUpdate(user.getId(), ConnectionStatus.ONLINE));
     }
 
     public void disconnectUser(User user) {
         updateUserStatus(user, false, UserStatusDetails.Fields.leftOn);
-        messagingTemplate.convertAndSend(destinationFunction.apply(user), new StatusUpdate(ConnectionStatus.OFFLINE));
+        messagingTemplate.convertAndSend("/topic/presence", new StatusUpdate(user.getId(), ConnectionStatus.OFFLINE));
     }
 
     private void updateUserStatus(User user, boolean connected, String connectedOrLeftOn) {

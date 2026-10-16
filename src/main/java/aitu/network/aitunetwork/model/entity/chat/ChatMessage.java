@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
@@ -23,6 +24,8 @@ import java.util.Map;
 @SuperBuilder
 @EqualsAndHashCode(of = "id", callSuper = false)
 @Document(collection = "chatMessage")
+// serves history (findByChatIdOrderByCreatedAt) and the unread-count / mark-read queries, which all lead with chatId
+@CompoundIndex(name = "chatId_createdAt_idx", def = "{'chatId': 1, 'createdAt': 1}")
 @FieldNameConstants
 public class ChatMessage extends BaseEntity implements Serializable {
     @Id
