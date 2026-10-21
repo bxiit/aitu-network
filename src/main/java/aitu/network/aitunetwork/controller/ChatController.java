@@ -52,6 +52,18 @@ public class ChatController {
         return ResponseEntity.ok(chatService.countNewMessages(id, userDetails.user()));
     }
 
+    // Bulk variants of /keys and /messages/count: every room's data in one request, so the client doesn't
+    // fan out N calls for N chats. The literal paths take precedence over the /rooms/{userId} mapping below.
+    @GetMapping("/rooms/keys")
+    ResponseEntity<Map<String, Map<String, String>>> getAllChatKeys(@CurrentUser CustomUserDetails userDetails) {
+        return ResponseEntity.ok(chatService.getAllChatParticipantsPublicKeys(userDetails.user()));
+    }
+
+    @GetMapping("/rooms/unread-counts")
+    ResponseEntity<Map<String, Long>> getUnreadCounts(@CurrentUser CustomUserDetails userDetails) {
+        return ResponseEntity.ok(chatService.getUnreadCounts(userDetails.user()));
+    }
+
     @GetMapping("/rooms/{chatId}/messages")
     List<ChatMessage> findChatMessages(@PathVariable String chatId) {
         return chatService.findChatMessages(chatId);

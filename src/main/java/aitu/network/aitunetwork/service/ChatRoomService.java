@@ -34,6 +34,11 @@ public class ChatRoomService {
                 .collect(Collectors.toList());
     }
 
+    /** All rooms the user participates in, as entities (used for the bulk keys/unread-count endpoints). */
+    public List<ChatRoom> findRooms(User user) {
+        return chatRoomRepository.findAllByParticipantsContains(user);
+    }
+
     public ChatRoomDTO createChatRoom(NewChatRoomDTO dto, User user) {
         try {
             dto.participantsIds().add(user.getId());
