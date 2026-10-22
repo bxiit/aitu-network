@@ -5,6 +5,7 @@ import aitu.network.aitunetwork.config.security.StompPrincipal;
 import aitu.network.aitunetwork.model.entity.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.messaging.Message;
@@ -36,12 +37,39 @@ import java.util.Map;
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    private static final String LEGACY_USER_QUEUE_PREFIX = "/user/queue/";
+    private static final String USER_TOPIC_PREFIX = "/user/topic/";
+
+    @Value("${secure-talk.stomp-broker.host}")
+    private String brokerHost;
+    @Value("${secure-talk.stomp-broker.port}")
+    private int brokerPort;
+    @Value("${secure-talk.stomp-broker.login}")
+    private String brokerLogin;
+    @Value("${secure-talk.stomp-broker.passcode}")
+    private String brokerPasscode;
+    @Value("${secure-talk.stomp-broker.virtual-host}")
+    private String brokerVirtualHost;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // /queue carries per-session user destinations (convertAndSendToUser); /topic carries broadcasts (presence).
-        // /user is NOT a broker topic any more: it is only the user-destination prefix, resolved per session, so a
-        // client can no longer subscribe to another user's /user/** channel.
-        config.enableSimpleBroker("/queue", "/topic");
+        // Broker destinations are relayed to RabbitMQ (rabbitmq_stomp), so every backend instance shares them.
+        // Per-session user destinations (convertAndSendToUser) and broadcasts (presence) both live under /topic:
+        // a RabbitMQ /topic subscription is an exclusive auto-delete queue that goes away with the session, and a
+        // send with no subscriber is dropped, whereas /queue/<name> would leave a durable queue behind per session.
+        // /user is NOT a broker topic: it is only the user-destination prefix, resolved per session, so a client
+        // can't subscribe to another user's /user/** channel.
+        config.enableStompBrokerRelay("/topic")
+                .setRelayHost(brokerHost)
+                .setRelayPort(brokerPort)
+                .setClientLogin(brokerLogin)
+                .setClientPasscode(brokerPasscode)
+                .setSystemLogin(brokerLogin)
+                .setSystemPasscode(brokerPasscode)
+                .setVirtualHost(brokerVirtualHost)
+                // let any instance deliver to a user connected to another instance
+                .setUserDestinationBroadcast("/topic/unresolved-user")
+                .setUserRegistryBroadcast("/topic/user-registry");
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
     }
@@ -61,8 +89,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-                if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand()) && accessor.getUser() == null) {
+                if (accessor == null) {
+                    return message;
+                }
+                if (StompCommand.CONNECT.equals(accessor.getCommand()) && accessor.getUser() == null) {
                     throw new MessagingException("Unauthenticated WebSocket connection rejected");
+                }
+                // Clients that still subscribe to /user/queue/** get the /user/topic/** channel the server sends to.
+                String destination = accessor.getDestination();
+                if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())
+                        && destination != null && destination.startsWith(LEGACY_USER_QUEUE_PREFIX)) {
+                    accessor.setDestination(USER_TOPIC_PREFIX + destination.substring(LEGACY_USER_QUEUE_PREFIX.length()));
                 }
                 return message;
             }

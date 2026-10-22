@@ -79,6 +79,7 @@ jobs:
           MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
           TOKEN_KEY: ${{ secrets.TOKEN_KEY }}
           MAIL_PASS: ${{ secrets.MAIL_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
         run: |
           umask 077
           cat > deploy.env <<EOF
@@ -87,6 +88,7 @@ jobs:
           MONGO_PASSWORD='${MONGO_PASSWORD}'
           TOKEN_KEY='${TOKEN_KEY}'
           MAIL_PASS='${MAIL_PASS}'
+          RABBITMQ_PASSWORD='${RABBITMQ_PASSWORD}'
           EOF
 
       - name: Deploy
