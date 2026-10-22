@@ -16,12 +16,14 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -64,9 +66,15 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getUnreadCounts(userDetails.user()));
     }
 
+    // One page of a chat's history, oldest-to-newest. No `before` → the latest page; `before` = the oldest message
+    // the client already has, to load the previous (older) page on scroll-up.
     @GetMapping("/rooms/{chatId}/messages")
-    List<ChatMessage> findChatMessages(@PathVariable String chatId) {
-        return chatService.findChatMessages(chatId);
+    List<ChatMessage> findChatMessages(
+            @PathVariable String chatId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime before,
+            @RequestParam(defaultValue = "30") int size
+    ) {
+        return chatService.findChatMessages(chatId, before, size);
     }
 
     // without the trailing slash too: the Next.js proxy redirects "/chats/" to "/chats"

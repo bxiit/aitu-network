@@ -22,6 +22,7 @@ import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,8 +108,8 @@ public class ChatService {
         return Map.of("count", chatMessageService.countNewMessages(chatId, user));
     }
 
-    public List<ChatMessage> findChatMessages(String chatId) {
-        return chatMessageService.findChatMessages(chatId);
+    public List<ChatMessage> findChatMessages(String chatId, LocalDateTime before, int size) {
+        return chatMessageService.findChatMessages(chatId, before, size);
     }
 
     public List<ChatRoomsWithMessages> findChats(User user) {
@@ -189,12 +190,20 @@ public class ChatService {
 
     public List<ChatRoomsWithMessages> findChats(User user, Pageable pageable) {
         MatchOperation match = Aggregation.match(Criteria.where("participants.$id").in(new ObjectId(user.getId())));
-        LookupOperation lookup = Aggregation.lookup(
-                "chatMessage",
-                ChatRoom.Fields.chatId,
-                ChatMessage.Fields.chatId,
-                ChatRoomsWithMessages.Fields.messages
-        );
+        // Only the latest page of messages per room, not the whole history: a sub-pipeline $lookup that takes the
+        // newest MESSAGE_PAGE_SIZE (sort desc + limit) and then re-sorts them ascending for display. Older messages
+        // load on demand via the paginated /messages endpoint. Raw stage because the simple lookup can't limit.
+        AggregationOperation lookup = context -> new Document("$lookup", new Document()
+                .append("from", "chatMessage")
+                .append("let", new Document("cid", "$" + ChatRoom.Fields.chatId))
+                .append("pipeline", List.of(
+                        new Document("$match", new Document("$expr",
+                                new Document("$eq", List.of("$" + ChatMessage.Fields.chatId, "$$cid")))),
+                        new Document("$sort", new Document("createdAt", -1)),
+                        new Document("$limit", ChatMessageService.MESSAGE_PAGE_SIZE),
+                        new Document("$sort", new Document("createdAt", 1))
+                ))
+                .append("as", ChatRoomsWithMessages.Fields.messages));
         // Sort by the room's latest message so page 0 is the most recent conversations (the field the old sort
         // referenced never existed, so paging was effectively unordered). Rooms with no messages yet sort last.
         AddFieldsOperation addLastMessageAt = Aggregation.addFields()

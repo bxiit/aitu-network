@@ -8,6 +8,7 @@ import aitu.network.aitunetwork.repository.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -17,8 +18,10 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,9 @@ public class ChatMessageService {
 
     @Value("${secure-talk.chat.user-destination}")
     private String destination;
+
+    /** Messages loaded per page: the latest N with a chat, and each older "scroll-up" batch. */
+    public static final int MESSAGE_PAGE_SIZE = 30;
 
     public ChatMessage save(ChatMessage message) {
         message.setStatus(MessageStatus.DELIVERED);
@@ -86,8 +92,22 @@ public class ChatMessageService {
         return counts;
     }
 
-    public List<ChatMessage> findChatMessages(String chatId) {
-        return chatMessageRepository.findByChatIdOrderByCreatedAt(chatId);
+    /**
+     * One page of a chat's history, oldest-to-newest: the latest {@code size} messages older than {@code before}
+     * (or the latest {@code size} overall when {@code before} is null). Cursor-based on createdAt so loading older
+     * messages on scroll-up is cheap and doesn't drag the whole history.
+     */
+    public List<ChatMessage> findChatMessages(String chatId, LocalDateTime before, int size) {
+        Criteria criteria = Criteria.where(ChatMessage.Fields.chatId).is(chatId);
+        if (before != null) {
+            criteria = criteria.and("createdAt").lt(before);
+        }
+        Query query = Query.query(criteria)
+                .with(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .limit(size > 0 ? size : MESSAGE_PAGE_SIZE);
+        List<ChatMessage> latestFirst = mongoTemplate.find(query, ChatMessage.class);
+        Collections.reverse(latestFirst); // ascending, so the client can render/prepend directly
+        return latestFirst;
     }
 
     /** Marks everything the reader hasn't read in the chat as read; returns those messages (id and senderId). */
