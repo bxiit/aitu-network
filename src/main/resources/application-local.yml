@@ -12,6 +12,5 @@ logging:
 secure-talk:
   mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:false}
   stomp-broker:
-    # the docker-compose RabbitMQ
-    login: ${STOMP_BROKER_LOGIN:aituuser}
-    passcode: ${STOMP_BROKER_PASSCODE:aitupass}
+    # in-memory simple broker locally; build with -Dlocal to leave out Reactor Netty
+    enabled: false

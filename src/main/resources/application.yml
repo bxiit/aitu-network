@@ -16,6 +16,8 @@ secure-talk:
     user-destination: ${USER_WS_DESTINATION:/topic/messages}
   # External STOMP broker (RabbitMQ with the rabbitmq_stomp plugin) that the WebSocket broker relay forwards to
   stomp-broker:
+    # false = in-memory simple broker (single instance only)
+    enabled: ${STOMP_BROKER_ENABLED:true}
     host: ${STOMP_BROKER_HOST:localhost}
     port: ${STOMP_BROKER_PORT:61613}
     login: ${STOMP_BROKER_LOGIN:guest}

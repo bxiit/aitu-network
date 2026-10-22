@@ -76,11 +76,6 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
         <dependency>
-            <!-- TCP client used by the STOMP broker relay to reach RabbitMQ -->
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-reactor-netty</artifactId>
-        </dependency>
-        <dependency>
             <groupId>de.flapdoodle.embed</groupId>
             <artifactId>de.flapdoodle.embed.mongo</artifactId>
             <version>4.11.0</version>
@@ -130,6 +125,25 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <!-- Everything except a local build (-Dlocal) relays websocket messages to RabbitMQ, which needs
+             Reactor Netty as the relay's TCP client. Locally the in-memory simple broker is used instead. -->
+        <profile>
+            <id>stomp-broker-relay</id>
+            <activation>
+                <property>
+                    <name>!local</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-reactor-netty</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>

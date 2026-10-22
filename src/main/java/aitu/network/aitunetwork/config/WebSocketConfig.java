@@ -40,6 +40,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private static final String LEGACY_USER_QUEUE_PREFIX = "/user/queue/";
     private static final String USER_TOPIC_PREFIX = "/user/topic/";
 
+    @Value("${secure-talk.stomp-broker.enabled}")
+    private boolean brokerRelayEnabled;
     @Value("${secure-talk.stomp-broker.host}")
     private String brokerHost;
     @Value("${secure-talk.stomp-broker.port}")
@@ -53,23 +55,28 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Broker destinations are relayed to RabbitMQ (rabbitmq_stomp), so every backend instance shares them.
+        // Broker destinations are relayed to RabbitMQ (rabbitmq_stomp), so every backend instance shares them;
+        // the local profile uses the in-memory simple broker instead (no RabbitMQ, no Reactor Netty).
         // Per-session user destinations (convertAndSendToUser) and broadcasts (presence) both live under /topic:
         // a RabbitMQ /topic subscription is an exclusive auto-delete queue that goes away with the session, and a
         // send with no subscriber is dropped, whereas /queue/<name> would leave a durable queue behind per session.
         // /user is NOT a broker topic: it is only the user-destination prefix, resolved per session, so a client
         // can't subscribe to another user's /user/** channel.
-        config.enableStompBrokerRelay("/topic")
-                .setRelayHost(brokerHost)
-                .setRelayPort(brokerPort)
-                .setClientLogin(brokerLogin)
-                .setClientPasscode(brokerPasscode)
-                .setSystemLogin(brokerLogin)
-                .setSystemPasscode(brokerPasscode)
-                .setVirtualHost(brokerVirtualHost)
-                // let any instance deliver to a user connected to another instance
-                .setUserDestinationBroadcast("/topic/unresolved-user")
-                .setUserRegistryBroadcast("/topic/user-registry");
+        if (brokerRelayEnabled) {
+            config.enableStompBrokerRelay("/topic")
+                    .setRelayHost(brokerHost)
+                    .setRelayPort(brokerPort)
+                    .setClientLogin(brokerLogin)
+                    .setClientPasscode(brokerPasscode)
+                    .setSystemLogin(brokerLogin)
+                    .setSystemPasscode(brokerPasscode)
+                    .setVirtualHost(brokerVirtualHost)
+                    // let any instance deliver to a user connected to another instance
+                    .setUserDestinationBroadcast("/topic/unresolved-user")
+                    .setUserRegistryBroadcast("/topic/user-registry");
+        } else {
+            config.enableSimpleBroker("/topic");
+        }
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
     }
