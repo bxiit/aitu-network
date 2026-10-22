@@ -13,7 +13,14 @@ secure-talk:
   file-download-path: /api/v1/file/
   mail-confirmation: ${MAIL_CONFIRMATION_ENABLED:false}
   chat:
-    user-destination: ${USER_WS_DESTINATION:/queue/messages}
+    user-destination: ${USER_WS_DESTINATION:/topic/messages}
+  # External STOMP broker (RabbitMQ with the rabbitmq_stomp plugin) that the WebSocket broker relay forwards to
+  stomp-broker:
+    host: ${STOMP_BROKER_HOST:localhost}
+    port: ${STOMP_BROKER_PORT:61613}
+    login: ${STOMP_BROKER_LOGIN:guest}
+    passcode: ${STOMP_BROKER_PASSCODE:guest}
+    virtual-host: ${STOMP_BROKER_VHOST:/}
 spring:
   data:
     mongodb:

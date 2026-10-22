@@ -16,17 +16,35 @@ services:
     ports:
       - "127.0.0.1:27018:27017"
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    # the backend's WebSocket broker relay speaks STOMP, which RabbitMQ only serves with this plugin enabled
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp && exec docker-entrypoint.sh rabbitmq-server"
+    environment:
+      RABBITMQ_DEFAULT_USER: aituuser
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is not set}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    # STOMP (61613) stays on the project network; the management UI is for admin access through an SSH tunnel
+    ports:
+      - "127.0.0.1:15672:15672"
+
   backend:
     image: ghcr.io/bxiit/aitu-network:${IMAGE_TAG:?IMAGE_TAG is not set}
     restart: unless-stopped
     depends_on:
       - mongo-db
+      - rabbitmq
     environment:
       SPRING_PROFILES_ACTIVE: default
       # Overrides spring.data.mongodb.uri and token.key from application.yml
       SPRING_DATA_MONGODB_URI: mongodb://aituuser:${MONGO_PASSWORD}@mongo-db:27017/aitunetwork?authSource=admin
       TOKEN_KEY: ${TOKEN_KEY:?TOKEN_KEY is not set}
       MAIL_PASS: ${MAIL_PASS:-}
+      STOMP_BROKER_HOST: rabbitmq
+      STOMP_BROKER_LOGIN: aituuser
+      STOMP_BROKER_PASSCODE: ${RABBITMQ_PASSWORD}
     ports:
       - "${HOST_PORT:?HOST_PORT is not set}:8080"
     networks:
@@ -38,6 +56,7 @@ services:
 
 volumes:
   mongo_data:
+  rabbitmq_data:
 
 networks:
   # shared with the frontend stack; created by the deploy workflow

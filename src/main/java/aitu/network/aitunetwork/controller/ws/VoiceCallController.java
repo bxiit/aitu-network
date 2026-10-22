@@ -25,7 +25,7 @@ public class VoiceCallController {
         signalMessage.setSenderId(ChatMessageController.currentUser(principal).getId());
         messagingTemplate.convertAndSendToUser(
                 receiverId,
-                "/queue/signaling",
+                "/topic/signaling",
                 signalMessage
         );
     }

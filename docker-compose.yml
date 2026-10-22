@@ -9,6 +9,23 @@ services:
     volumes:
       - redis_data:/data
     restart: always
+  rabbitmq:
+    networks:
+      - aitu-net
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    # the WebSocket broker relay speaks STOMP, which RabbitMQ only serves with this plugin enabled
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp && exec docker-entrypoint.sh rabbitmq-server"
+    ports:
+      - "61613:61613" # STOMP
+      - "15672:15672" # management UI
+    environment:
+      # not guest: RabbitMQ only lets guest connect from localhost, and the published port isn't that
+      RABBITMQ_DEFAULT_USER: aituuser
+      RABBITMQ_DEFAULT_PASS: aitupass
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
   mongodb:
     networks:
       - aitu-net
@@ -25,6 +42,7 @@ services:
 volumes:
   mongo_data:
   redis_data:
+  rabbitmq_data:
 
 networks:
   aitu-net:
